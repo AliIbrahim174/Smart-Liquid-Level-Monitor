@@ -22,17 +22,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     update();
-    timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => update(),
-    );
+    timer = Timer.periodic(const Duration(seconds: 1), (_) => update());
   }
 
   Future<void> update() async {
     try {
       final result = await service.getStatus();
       if (!mounted) return;
-
       setState(() {
         data = result;
         connected = true;
@@ -54,6 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return Colors.grey;
     }
+  }
+
+  int remainingVolume(LiquidStatus value) {
+    return ((value.level / 100) * value.capacityMl).round();
   }
 
   @override
@@ -107,8 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    backgroundColor:
-                        statusColor(data!.status).withOpacity(0.2),
+                    backgroundColor: statusColor(data!.status).withOpacity(0.2),
                   ),
                 ),
 
@@ -130,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const Divider(),
                         Text('Liquid: ${data!.liquid}'),
                         Text('Capacity: ${data!.capacityMl} mL'),
+                        Text('Remaining: ${remainingVolume(data!)} mL'),
                         Text('Warning: ${data!.warningThreshold}%'),
                         Text('Critical: ${data!.criticalThreshold}%'),
                       ],
