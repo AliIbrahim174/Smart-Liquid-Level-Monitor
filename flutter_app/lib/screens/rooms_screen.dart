@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/monitor_device.dart';
+import '../services/simulation_service.dart';
 
 class RoomsScreen extends StatelessWidget {
   const RoomsScreen({super.key});
@@ -20,58 +21,60 @@ class RoomsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Simulation devices for demonstration.
-    // Later these values will come from Arduino IDE commands.
-    final devices = [
-      MonitorDevice(
-        name: 'Room 1 - Real Sensor',
-        liquid: 'Normal Saline',
-        level: 72,
-        status: 'NORMAL',
-        mode: DeviceMode.real,
-      ),
-      MonitorDevice(
-        name: 'Room 2 - Simulation',
-        liquid: 'Glucose 5%',
-        level: 18,
-        status: 'LOW',
-        mode: DeviceMode.simulation,
-      ),
-      MonitorDevice(
-        name: 'Room 3 - Simulation',
-        liquid: 'Medication',
-        level: 5,
-        status: 'CRITICAL',
-        mode: DeviceMode.simulation,
-      ),
-    ];
+    final simulation = SimulationService();
+
+    final devices = simulation.simulatedDevices;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Monitored Rooms'),
+        title: const Text('Hospital Liquid Monitor'),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: devices.length,
-        itemBuilder: (context, index) {
-          final device = devices[index];
-
-          return Card(
-            child: ListTile(
-              title: Text(device.name),
-              subtitle: Text(
-                '${device.liquid}\n${device.level.toStringAsFixed(0)}%  ${device.status}',
-              ),
-              isThreeLine: true,
-              trailing: Icon(
-                device.mode == DeviceMode.real
-                    ? Icons.sensors
-                    : Icons.code,
-                color: statusColor(device.status),
+      body: Column(
+        children: [
+          if (devices.any((d) => d.status == 'LOW' || d.status == 'CRITICAL'))
+            Card(
+              margin: const EdgeInsets.all(12),
+              child: ListTile(
+                leading: const Icon(Icons.warning),
+                title: const Text('Active Alerts'),
+                subtitle: Text(
+                  '${devices.where((d) => d.status != 'NORMAL').length} room(s) need attention',
+                ),
               ),
             ),
-          );
-        },
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: devices.length,
+              itemBuilder: (context, index) {
+                final device = devices[index];
+
+                return Card(
+                  child: ListTile(
+                    leading: Icon(
+                      device.mode == DeviceMode.real
+                          ? Icons.sensors
+                          : Icons.developer_mode,
+                      color: statusColor(device.status),
+                    ),
+                    title: Text(device.name),
+                    subtitle: Text(
+                      '${device.liquid}\n'
+                      'Level: ${device.level.toStringAsFixed(0)}%\n'
+                      'Status: ${device.status}\n'
+                      'Mode: ${device.mode == DeviceMode.real ? 'REAL SENSOR' : 'SIMULATION'}',
+                    ),
+                    isThreeLine: true,
+                    trailing: Icon(
+                      Icons.circle,
+                      color: statusColor(device.status),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
