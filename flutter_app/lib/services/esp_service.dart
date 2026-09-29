@@ -10,7 +10,7 @@ class EspService {
   Future<LiquidStatus> getStatus() async {
     final response = await http
         .get(Uri.parse('$baseUrl/status'))
-        .timeout(const Duration(seconds: 3));
+        .timeout(const Duration(seconds: 5));
 
     if (response.statusCode != 200) {
       throw Exception('ESP8266 error');
@@ -23,7 +23,7 @@ class EspService {
     final response = await http.post(
       Uri.parse('$baseUrl/config'),
       body: config.toRequest(),
-    ).timeout(const Duration(seconds: 3));
+    ).timeout(const Duration(seconds: 8));
 
     if (response.statusCode != 200) {
       throw Exception('Configuration failed');
