@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'screens/rooms_screen.dart';
 
 void main() {
   runApp(const LiquidMonitorApp());
@@ -14,7 +15,48 @@ class LiquidMonitorApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Liquid Monitor',
       theme: ThemeData(useMaterial3: true),
-      home: const HomeScreen(),
+      home: const MainNavigation(),
+    );
+  }
+}
+
+class MainNavigation extends StatefulWidget {
+  const MainNavigation({super.key});
+
+  @override
+  State<MainNavigation> createState() => _MainNavigationState();
+}
+
+class _MainNavigationState extends State<MainNavigation> {
+  int index = 0;
+
+  final pages = const [
+    HomeScreen(),
+    RoomsScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: pages[index],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: index,
+        onDestinationSelected: (value) {
+          setState(() {
+            index = value;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.water_drop),
+            label: 'Live Bottle',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.local_hospital),
+            label: 'Rooms',
+          ),
+        ],
+      ),
     );
   }
 }
