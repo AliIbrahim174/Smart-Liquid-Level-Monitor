@@ -1,6 +1,7 @@
 enum DeviceMode { real, simulation }
 
 class MonitorDevice {
+  final int id;
   final String name;
   final String liquid;
   final double level;
@@ -15,7 +16,7 @@ class MonitorDevice {
     required this.status,
     required this.mode,
     this.capacityMl = 500,
-  });
+  }) : id = name.hashCode;
 
   int get remainingMl => ((level / 100) * capacityMl).round();
 
