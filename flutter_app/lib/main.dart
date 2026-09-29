@@ -3,10 +3,12 @@ import 'screens/home_screen.dart';
 import 'screens/rooms_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'services/notification_service.dart';
+import 'services/monitoring_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.init();
+  MonitoringService.start();
   runApp(const LiquidMonitorApp());
 }
 
