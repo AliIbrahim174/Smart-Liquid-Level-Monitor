@@ -40,21 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Color statusColor(String status) {
-    switch (status) {
-      case 'NORMAL':
-        return Colors.green;
-      case 'LOW':
-        return Colors.orange;
-      case 'CRITICAL':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
+    if (status == 'NORMAL') return Colors.green;
+    if (status == 'LOW') return Colors.orange;
+    if (status == 'CRITICAL') return Colors.red;
+    return Colors.grey;
   }
 
-  int remainingVolume(LiquidStatus value) {
-    return ((value.level / 100) * value.capacityMl).round();
-  }
+  int remainingVolume(LiquidStatus value) =>
+      ((value.level / 100) * value.capacityMl).round();
 
   @override
   void dispose() {
@@ -66,13 +59,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Liquid Monitor'),
+        title: const Text('Smart Liquid Monitor'),
         centerTitle: true,
         actions: [
-          Icon(
-            connected ? Icons.wifi : Icons.wifi_off,
-            color: connected ? Colors.green : Colors.red,
-          ),
+          Icon(connected ? Icons.wifi : Icons.wifi_off,
+              color: connected ? Colors.green : Colors.red),
           const SizedBox(width: 15),
         ],
       ),
@@ -81,87 +72,84 @@ class _HomeScreenState extends State<HomeScreen> {
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                Center(
-                  child: Text(
-                    '${data!.level.toStringAsFixed(0)}%',
-                    style: const TextStyle(
-                      fontSize: 70,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                LinearProgressIndicator(
-                  value: (data!.level / 100).clamp(0, 1),
-                  minHeight: 20,
-                ),
-
-                const SizedBox(height: 25),
-
-                Center(
-                  child: Chip(
-                    label: Text(
-                      data!.status,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    backgroundColor: statusColor(data!.status).withOpacity(0.2),
-                  ),
-                ),
-
-                const SizedBox(height: 25),
-
                 Card(
+                  elevation: 4,
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(24),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Bottle Information',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                        const Icon(Icons.water_drop,
+                            size: 70, color: Colors.blue),
+                        Text('${data!.level.toStringAsFixed(0)}%',
+                            style: const TextStyle(
+                                fontSize: 55,
+                                fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 15),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: LinearProgressIndicator(
+                            value: (data!.level / 100).clamp(0, 1),
+                            minHeight: 22,
                           ),
                         ),
-                        const Divider(),
-                        Text('Liquid: ${data!.liquid}'),
-                        Text('Capacity: ${data!.capacityMl} mL'),
-                        Text('Remaining: ${remainingVolume(data!)} mL'),
-                        Text('Warning: ${data!.warningThreshold}%'),
-                        Text('Critical: ${data!.criticalThreshold}%'),
+                        const SizedBox(height: 15),
+                        Chip(
+                          label: Text(data!.status,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)),
+                          backgroundColor:
+                              statusColor(data!.status).withOpacity(.2),
+                        )
                       ],
                     ),
                   ),
                 ),
-
-                Card(
-                  child: ListTile(
-                    title: const Text('Sensor ADC'),
-                    trailing: Text('${data!.adc}'),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
+                const SizedBox(height: 15),
+                _infoCard('Bottle Information', [
+                  'Liquid: ${data!.liquid}',
+                  'Capacity: ${data!.capacityMl} mL',
+                  'Remaining: ${remainingVolume(data!)} mL',
+                  'Warning level: ${data!.warningThreshold}%',
+                  'Critical level: ${data!.criticalThreshold}%',
+                ]),
+                _infoCard('Sensor Information', [
+                  'Sensor: C43 Level Sensor',
+                  'ADC Reading: ${data!.adc}',
+                  connected ? 'ESP8266: Online' : 'ESP8266: Offline',
+                ]),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.qr_code_scanner),
                   label: const Text('Scan Bottle QR'),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => QrScreen(
-                          espService: service,
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => QrScreen(espService: service)),
+                  ),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _infoCard(String title, List<String> items) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Divider(),
+            ...items.map((e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Text(e),
+                )),
+          ],
+        ),
+      ),
     );
   }
 }
