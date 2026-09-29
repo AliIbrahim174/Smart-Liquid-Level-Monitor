@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/rooms_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/alerts_screen.dart';
+import 'screens/settings_screen.dart';
 import 'services/notification_service.dart';
 import 'services/monitoring_service.dart';
 import 'services/background_work_manager.dart';
@@ -42,6 +44,8 @@ class _MainNavigationState extends State<MainNavigation> {
     DashboardScreen(),
     HomeScreen(),
     RoomsScreen(),
+    AlertsScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -55,6 +59,8 @@ class _MainNavigationState extends State<MainNavigation> {
           NavigationDestination(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           NavigationDestination(icon: Icon(Icons.water_drop), label: 'Live Bottle'),
           NavigationDestination(icon: Icon(Icons.local_hospital), label: 'Rooms'),
+          NavigationDestination(icon: Icon(Icons.notifications), label: 'Alerts'),
+          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );
