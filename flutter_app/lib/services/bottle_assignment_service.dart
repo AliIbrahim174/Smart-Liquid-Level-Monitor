@@ -1,43 +1,38 @@
-import '../models/monitor_device.dart';
-
-class BottleAssignment {
-  final String bottleId;
-  final double expectedVolume;
-
-  BottleAssignment({
-    required this.bottleId,
-    required this.expectedVolume,
-  });
-}
+import '../models/bottle_identity.dart';
 
 class BottleAssignmentService {
-  BottleAssignment? _currentBottle;
+  BottleIdentity? _currentBottle;
 
-  BottleAssignment? get currentBottle => _currentBottle;
+  BottleIdentity? get currentBottle => _currentBottle;
 
   void assignBottle(String qrData) {
-    final parts = qrData.split('|');
-    if (parts.length < 2) {
-      throw Exception('Invalid QR format');
+    _currentBottle = BottleIdentity.fromQr(qrData);
+  }
+
+  VolumeCheck compareVolume(double measuredVolume) {
+    if (_currentBottle == null) {
+      return VolumeCheck(
+        status: 'NO_BOTTLE_ASSIGNED',
+        differenceMl: 0,
+      );
     }
 
-    _currentBottle = BottleAssignment(
-      bottleId: parts[0],
-      expectedVolume: double.tryParse(parts[1]) ?? 0,
+    final difference =
+        (_currentBottle!.expectedVolumeMl - measuredVolume).abs();
+
+    return VolumeCheck(
+      status: difference <= 20 ? 'NORMAL' : 'VOLUME_MISMATCH',
+      differenceMl: difference,
     );
   }
+}
 
-  String compareVolume(double measuredVolume) {
-    if (_currentBottle == null) {
-      return 'NO_BOTTLE_ASSIGNED';
-    }
+class VolumeCheck {
+  final String status;
+  final double differenceMl;
 
-    final difference = (_currentBottle!.expectedVolume - measuredVolume).abs();
-
-    if (difference <= 20) {
-      return 'NORMAL';
-    }
-
-    return 'VOLUME_MISMATCH';
-  }
+  VolumeCheck({
+    required this.status,
+    required this.differenceMl,
+  });
 }
