@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/monitor_device.dart';
 import '../services/rooms_service.dart';
+import 'room_details_screen.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -53,9 +54,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
   void initState() {
     super.initState();
     loadRooms();
-    refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      loadRooms();
-    });
+    refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) => loadRooms());
   }
 
   @override
@@ -67,9 +66,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hospital Liquid Monitor'),
-      ),
+      appBar: AppBar(title: const Text('Hospital Liquid Monitor')),
       body: RefreshIndicator(
         onRefresh: loadRooms,
         child: loading
@@ -84,17 +81,21 @@ class _RoomsScreenState extends State<RoomsScreen> {
                           child: ListTile(
                             leading: const Icon(Icons.warning),
                             title: const Text('Active Alerts'),
-                            subtitle: Text(
-                              '${devices.where((d) => d.status != 'NORMAL').length} room(s) need attention',
-                            ),
+                            subtitle: Text('${devices.where((d) => d.status != 'NORMAL').length} room(s) need attention'),
                           ),
                         ),
                       ...devices.map((device) => Card(
                             child: ListTile(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => RoomDetailsScreen(device: device),
+                                  ),
+                                );
+                              },
                               leading: Icon(
-                                device.mode == DeviceMode.real
-                                    ? Icons.sensors
-                                    : Icons.developer_mode,
+                                device.mode == DeviceMode.real ? Icons.sensors : Icons.developer_mode,
                                 color: statusColor(device.status),
                               ),
                               title: Text(device.name),
@@ -104,10 +105,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
                                 'Remaining: ${device.remainingMl} mL\n'
                                 'Status: ${device.status}',
                               ),
-                              trailing: Icon(
-                                Icons.circle,
-                                color: statusColor(device.status),
-                              ),
+                              trailing: Icon(Icons.circle, color: statusColor(device.status)),
                             ),
                           )),
                     ],
