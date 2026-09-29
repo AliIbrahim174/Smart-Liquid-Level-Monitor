@@ -3,19 +3,41 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 class NotificationService {
   static final FlutterLocalNotificationsPlugin plugin = FlutterLocalNotificationsPlugin();
 
+  static const String monitoringChannelId = 'liquid_monitor_channel';
+
   static Future<void> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: android);
     await plugin.initialize(settings);
 
-    await plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.requestNotificationsPermission();
+    final androidPlugin = plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidPlugin?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        monitoringChannelId,
+        'Liquid Monitor Background Service',
+        description: 'Background monitoring service status',
+        importance: Importance.low,
+      ),
+    );
+
+    await androidPlugin?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'liquid_alerts',
+        'Liquid Level Alerts',
+        description: 'Alerts when monitored liquid levels are low or critical',
+        importance: Importance.high,
+      ),
+    );
+
+    await androidPlugin?.requestNotificationsPermission();
   }
 
   static Future<void> showAlert(String title, String body) async {
     const details = AndroidNotificationDetails(
       'liquid_alerts',
       'Liquid Level Alerts',
-      channelDescription: 'Alerts when monitored liquid levels are low',
+      channelDescription: 'Alerts when monitored liquid levels are low or critical',
       importance: Importance.high,
       priority: Priority.high,
     );
