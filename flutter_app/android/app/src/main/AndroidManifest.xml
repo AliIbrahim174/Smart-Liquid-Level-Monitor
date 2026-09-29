@@ -8,6 +8,11 @@
         android:label="liquid_monitor"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <meta-data
+            android:name="id.flutter.flutter_background_service.notification_icon"
+            android:resource="@drawable/ic_bg_service_small" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
