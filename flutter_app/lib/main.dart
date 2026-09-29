@@ -22,7 +22,7 @@ class LiquidMonitorApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Liquid Monitor',
-      theme: ThemeData(useMaterial3: true),
+      theme: ThemeData(use-material-3: true),
       home: const MainNavigation(),
     );
   }
@@ -54,7 +54,7 @@ class _MainNavigationState extends State<MainNavigation> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           NavigationDestination(icon: Icon(Icons.water_drop), label: 'Live Bottle'),
-          NavigationNavigationDestination(icon: Icon(Icons.local_hospital), label: 'Rooms'),
+          NavigationDestination(icon: Icon(Icons.local_hospital), label: 'Rooms'),
         ],
       ),
     );
