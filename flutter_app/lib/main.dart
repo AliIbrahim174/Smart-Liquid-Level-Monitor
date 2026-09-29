@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/rooms_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'services/notification_service.dart';
 
 void main() async {
@@ -34,6 +35,7 @@ class _MainNavigationState extends State<MainNavigation> {
   int index = 0;
 
   final pages = const [
+    DashboardScreen(),
     HomeScreen(),
     RoomsScreen(),
   ];
@@ -46,6 +48,7 @@ class _MainNavigationState extends State<MainNavigation> {
         selectedIndex: index,
         onDestinationSelected: (value) => setState(() => index = value),
         destinations: const [
+          NavigationDestination(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           NavigationDestination(icon: Icon(Icons.water_drop), label: 'Live Bottle'),
           NavigationDestination(icon: Icon(Icons.local_hospital), label: 'Rooms'),
         ],
