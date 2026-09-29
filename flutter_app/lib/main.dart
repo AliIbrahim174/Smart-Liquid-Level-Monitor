@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/rooms_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.init();
   runApp(const LiquidMonitorApp());
 }
 
@@ -41,20 +44,10 @@ class _MainNavigationState extends State<MainNavigation> {
       body: pages[index],
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (value) {
-          setState(() {
-            index = value;
-          });
-        },
+        onDestinationSelected: (value) => setState(() => index = value),
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.water_drop),
-            label: 'Live Bottle',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.local_hospital),
-            label: 'Rooms',
-          ),
+          NavigationDestination(icon: Icon(Icons.water_drop), label: 'Live Bottle'),
+          NavigationDestination(icon: Icon(Icons.local_hospital), label: 'Rooms'),
         ],
       ),
     );
