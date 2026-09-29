@@ -7,7 +7,7 @@ IoT liquid monitoring prototype using:
 - 16x2 parallel LCD
 - Flutter mobile application
 
-## System
+## System Architecture
 
 ```
 C43 Sensor -> ESP8266 -> WiFi -> Flutter App
@@ -15,14 +15,29 @@ C43 Sensor -> ESP8266 -> WiFi -> Flutter App
                  -> LCD
 ```
 
-## Current Features
+## Implemented Features
 
-- Sensor calibration for bottle liquid levels
-- LCD percentage display
-- ESP8266 WiFi Access Point
+- Sensor calibration for liquid levels
+- LCD percentage and status display
+- ESP8266 WiFi communication
 - HTTP JSON API
-- Mobile app communication
-- QR based container configuration (planned)
+- Flutter mobile monitoring
+- Live bottle monitoring
+- Multi-room monitoring
+- Real and simulation devices
+- Critical and low-level notifications
+- Background monitoring service
+- Bottle identity and QR foundation
+- Volume mismatch detection logic
+- Alert history
+
+## Phase 3 Documentation
+
+Complete project documentation is available at:
+
+```
+docs/PHASE3_DOCUMENTATION.md
+```
 
 ## Calibration
 
