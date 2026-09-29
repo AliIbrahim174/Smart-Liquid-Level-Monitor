@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/monitor_device.dart';
@@ -15,6 +16,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
   List<MonitorDevice> devices = [];
   bool loading = true;
   String error = '';
+  Timer? refreshTimer;
 
   Color statusColor(String status) {
     switch (status) {
@@ -32,12 +34,14 @@ class _RoomsScreenState extends State<RoomsScreen> {
   Future<void> loadRooms() async {
     try {
       final result = await service.fetchRooms();
+      if (!mounted) return;
       setState(() {
         devices = result;
         loading = false;
         error = '';
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         loading = false;
         error = e.toString();
@@ -49,6 +53,15 @@ class _RoomsScreenState extends State<RoomsScreen> {
   void initState() {
     super.initState();
     loadRooms();
+    refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      loadRooms();
+    });
+  }
+
+  @override
+  void dispose() {
+    refreshTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -88,6 +101,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
                               subtitle: Text(
                                 '${device.liquid}\n'
                                 'Level: ${device.level.toStringAsFixed(0)}%\n'
+                                'Remaining: ${device.remainingMl} mL\n'
                                 'Status: ${device.status}',
                               ),
                               trailing: Icon(
