@@ -16,7 +16,6 @@ Future<void> initializeBackgroundService() async {
       notificationChannelId: NotificationService.monitoringChannelId,
       initialNotificationTitle: 'Liquid Monitor',
       initialNotificationContent: 'Monitoring liquid levels',
-      initialNotificationIcon: 'ic_launcher',
     ),
     iosConfiguration: IosConfiguration(),
   );
