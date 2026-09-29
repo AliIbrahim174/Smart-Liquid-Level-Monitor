@@ -1,44 +1,57 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../models/bottle_config.dart';
-import '../services/esp_service.dart';
 
-class QrScreen extends StatelessWidget {
-  final EspService espService;
+class QrScreen extends StatefulWidget {
+  const QrScreen({super.key});
 
-  const QrScreen({super.key, required this.espService});
+  @override
+  State<QrScreen> createState() => _QrScreenState();
+}
 
-  // Temporary parser example.
-  // Camera scanner will replace this in the next step.
-  BottleConfig parseQr(String text) {
-    final parts = text.split('|');
+class _QrScreenState extends State<QrScreen> {
+  bool locked = false;
 
-    return BottleConfig(
-      id: parts[0],
-      liquid: parts[1],
-      capacityMl: int.parse(parts[2]),
-      warningThreshold: double.parse(parts[3]),
-      criticalThreshold: double.parse(parts[4]),
-    );
-  }
+  void processQr(String value) {
+    if (locked) return;
 
-  Future<void> sendExample() async {
-    final config = parseQr(
-      'IV001|Normal Saline|500|25|10',
-    );
+    locked = true;
 
-    await espService.sendBottleConfig(config);
+    try {
+      final json = jsonDecode(value);
+      final bottle = BottleConfig.fromJson(json);
+
+      Navigator.pop(context, bottle);
+    } catch (_) {
+      locked = false;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid QR format'),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan Bottle')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: sendExample,
-          child: const Text('Send Test Bottle Config'),
-        ),
+      appBar: AppBar(
+        title: const Text('Scan Bottle QR'),
+      ),
+      body: MobileScanner(
+        onDetect: (capture) {
+          if (capture.barcodes.isEmpty) return;
+
+          final value = capture.barcodes.first.rawValue;
+
+          if (value != null) {
+            processQr(value);
+          }
+        },
       ),
     );
   }
