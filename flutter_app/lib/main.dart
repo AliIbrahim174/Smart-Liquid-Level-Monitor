@@ -4,13 +4,13 @@ import 'screens/rooms_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'services/notification_service.dart';
 import 'services/monitoring_service.dart';
-import 'services/background_monitor_service.dart';
+import 'services/background_work_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.init();
   MonitoringService.start();
-  //await initializeBackgroundService();
+  await initializeBackgroundMonitoring();
   runApp(const LiquidMonitorApp());
 }
 
