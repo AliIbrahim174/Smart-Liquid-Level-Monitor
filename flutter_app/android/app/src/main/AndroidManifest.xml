@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -8,10 +7,6 @@
         android:label="liquid_monitor"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-
-        <meta-data
-            android:name="id.flutter.flutter_background_service.notification_icon"
-            android:resource="@drawable/ic_bg_service_small" />
 
         <activity
             android:name=".MainActivity"
@@ -30,10 +25,9 @@
         </activity>
 
         <service
-            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:name=".LiquidMonitorService"
             android:foregroundServiceType="dataSync"
-            android:exported="true"
-            tools:replace="android:exported" />
+            android:exported="false" />
 
         <meta-data android:name="flutterEmbedding" android:value="2" />
     </application>
