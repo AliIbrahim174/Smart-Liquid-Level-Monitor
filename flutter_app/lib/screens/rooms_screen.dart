@@ -19,19 +19,14 @@ class _RoomsScreenState extends State<RoomsScreen> {
   bool loading = true;
   String error = '';
   Timer? refreshTimer;
-
   final Set<int> notifiedRooms = {};
 
   Color statusColor(String status) {
     switch (status) {
-      case 'NORMAL':
-        return Colors.green;
-      case 'LOW':
-        return Colors.orange;
-      case 'CRITICAL':
-        return Colors.red;
-      default:
-        return Colors.grey;
+      case 'NORMAL': return Colors.green;
+      case 'LOW': return Colors.orange;
+      case 'CRITICAL': return Colors.red;
+      default: return Colors.grey;
     }
   }
 
@@ -83,54 +78,72 @@ class _RoomsScreenState extends State<RoomsScreen> {
     super.dispose();
   }
 
+  Widget statusBadge(String status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: statusColor(status).withOpacity(.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(status, style: TextStyle(color: statusColor(status), fontWeight: FontWeight.bold)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Hospital Liquid Monitor')),
-      body: RefreshIndicator(
-        onRefresh: loadRooms,
-        child: loading
-            ? const Center(child: CircularProgressIndicator())
-            : error.isNotEmpty
-                ? Center(child: Text(error))
-                : ListView(
+      appBar: AppBar(title: const Text('Liquid Monitoring Rooms')),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : error.isNotEmpty
+              ? Center(child: Text(error))
+              : RefreshIndicator(
+                  onRefresh: loadRooms,
+                  child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      if (devices.any((d) => d.status != 'NORMAL'))
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.warning),
-                            title: const Text('Active Alerts'),
-                            subtitle: Text('${devices.where((d) => d.status != 'NORMAL').length} room(s) need attention'),
+                      ...devices.map((device) => Card(
+                        elevation: 3,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => RoomDetailsScreen(device: device)),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(device.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                    statusBadge(device.status),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Icon(device.mode == DeviceMode.real ? Icons.sensors : Icons.developer_mode),
+                                    const SizedBox(width: 8),
+                                    Text(device.mode == DeviceMode.real ? 'REAL DEVICE' : 'SIMULATION'),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text('${device.liquid}  •  ${device.remainingMl} mL remaining'),
+                                const SizedBox(height: 10),
+                                LinearProgressIndicator(value: (device.level / 100).clamp(0, 1)),
+                                const SizedBox(height: 8),
+                                Text('Level: ${device.level.toStringAsFixed(0)}%'),
+                              ],
+                            ),
                           ),
                         ),
-                      ...devices.map((device) => Card(
-                            child: ListTile(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => RoomDetailsScreen(device: device),
-                                  ),
-                                );
-                              },
-                              leading: Icon(
-                                device.mode == DeviceMode.real ? Icons.sensors : Icons.developer_mode,
-                                color: statusColor(device.status),
-                              ),
-                              title: Text(device.name),
-                              subtitle: Text(
-                                '${device.liquid}\n'
-                                'Level: ${device.level.toStringAsFixed(0)}%\n'
-                                'Remaining: ${device.remainingMl} mL\n'
-                                'Status: ${device.status}',
-                              ),
-                              trailing: Icon(Icons.circle, color: statusColor(device.status)),
-                            ),
-                          )),
+                      )),
                     ],
                   ),
-      ),
+                ),
     );
   }
 }
