@@ -22,7 +22,7 @@ class LiquidMonitorApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Liquid Monitor',
-      theme: ThemeData(use-material-3: true),
+      theme: ThemeData(useMaterial3: true),
       home: const MainNavigation(),
     );
   }
