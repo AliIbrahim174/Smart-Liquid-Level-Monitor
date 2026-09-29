@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/monitor_device.dart';
 import '../services/rooms_service.dart';
+import '../services/notification_service.dart';
 import 'room_details_screen.dart';
 
 class RoomsScreen extends StatefulWidget {
@@ -19,6 +20,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
   String error = '';
   Timer? refreshTimer;
 
+  final Set<int> notifiedRooms = {};
+
   Color statusColor(String status) {
     switch (status) {
       case 'NORMAL':
@@ -32,9 +35,26 @@ class _RoomsScreenState extends State<RoomsScreen> {
     }
   }
 
+  Future<void> checkAlerts(List<MonitorDevice> rooms) async {
+    for (final room in rooms) {
+      if (room.status == 'LOW' || room.status == 'CRITICAL') {
+        if (!notifiedRooms.contains(room.id)) {
+          notifiedRooms.add(room.id);
+          await NotificationService.showAlert(
+            'Liquid Level Alert',
+            '${room.name}\n${room.liquid}\nLevel: ${room.level.toStringAsFixed(0)}%\nStatus: ${room.status}',
+          );
+        }
+      } else {
+        notifiedRooms.remove(room.id);
+      }
+    }
+  }
+
   Future<void> loadRooms() async {
     try {
       final result = await service.fetchRooms();
+      await checkAlerts(result);
       if (!mounted) return;
       setState(() {
         devices = result;
