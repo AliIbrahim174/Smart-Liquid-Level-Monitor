@@ -10,7 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.init();
   MonitoringService.start();
-  await initializeBackgroundService();
+  //await initializeBackgroundService();
   runApp(const LiquidMonitorApp());
 }
 
