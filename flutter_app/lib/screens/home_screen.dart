@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18)),
                           backgroundColor:
-                              statusColor(data!.status).withOpacity(.2),
+                              statusColor(data!.status).withValues(alpha: .2),
                         )
                       ],
                     ),

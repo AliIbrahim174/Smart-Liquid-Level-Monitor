@@ -82,7 +82,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: statusColor(status).withOpacity(.15),
+        color: statusColor(status).withValues(alpha: .15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(status, style: TextStyle(color: statusColor(status), fontWeight: FontWeight.bold)),
