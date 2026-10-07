@@ -33,16 +33,36 @@ SimRoom rooms[4]={
 
 float level=0;
 int adcValue=0;
+unsigned long lastSensorCycle=0;
+unsigned long lastSample=0;
+long sampleSum=0;
+int sampleCount=0;
+bool sampling=false;
+String serialCommand;
+bool serialOverflow=false;
+int lastStationCount=-1;
 
 void loadConfig(){
  EEPROM.get(0,config);
- if(config.liquid[0]=='\0'||config.liquid[0]==0xFF){strcpy(config.liquid,"Not Set");config.capacity=0;config.warning=25;config.critical=10;}
+ if(config.liquid[0]=='\0'||static_cast<unsigned char>(config.liquid[0])==0xFF){strcpy(config.liquid,"Not Set");config.capacity=0;config.warning=25;config.critical=10;}
+ config.liquid[31]='\0';
 }
 
-int readSensor(){long s=0;for(int i=0;i<20;i++){s+=analogRead(SENSOR_PIN);delay(2);}return s/20;}
+// Escape configuration text so a quote in a bottle name cannot break JSON
+// and make the app report a lost connection.
+String jsonText(const String& value){
+ String result="\"";
+ for(unsigned int i=0;i<value.length();i++){
+  unsigned char c=value[i];
+  if(c=='\"'||c=='\\'){result+='\\';result+=char(c);}
+  else if(c<0x20){char escaped[7];snprintf(escaped,sizeof(escaped),"\\u%04x",c);result+=escaped;}
+  else result+=char(c);
+ }
+ return result+"\"";
+}
 
 float calculateLevel(int adc){
- if(adc<=ADC_0)return 0;
+ if(adc<=ADC_0)return 0;   
  if(adc<=ADC_25)return (adc-ADC_0)*25.0/(ADC_25-ADC_0);
  if(adc<=ADC_50)return 25+(adc-ADC_25)*25.0/(ADC_50-ADC_25);
  if(adc<=ADC_75)return 50+(adc-ADC_50)*25.0/(ADC_75-ADC_50);
@@ -56,10 +76,10 @@ void roomsAPI(){
  String j="[";
  for(int i=1;i<=3;i++){
   j+="{\"room\":"+String(i)+",";
-  j+="\"name\":\""+rooms[i].name+"\",";
-  j+="\"liquid\":\""+(i==1?String(config.liquid):rooms[i].liquid)+"\",";
+  j+="\"name\":"+jsonText(rooms[i].name)+",";
+  j+="\"liquid\":"+jsonText(i==1?String(config.liquid):rooms[i].liquid)+",";
   j+="\"capacity\":"+(i==1?String(config.capacity):String(rooms[i].capacity))+",";
-  j+="\"mode\":\""+(i==1?"REAL":"SIMULATION")+"\",";
+  j+="\"mode\":"+jsonText(i==1?"REAL":"SIMULATION")+",";
   j+="\"level\":"+(i==1?String(level,0):String(rooms[i].level))+",";
   j+="\"status\":\""+(i==1?statusText():rooms[i].status)+"\"}";
   if(i<3)j+=",";
@@ -68,10 +88,20 @@ void roomsAPI(){
  server.send(200,"application/json",j);
 }
 
-void statusAPI(){server.send(200,"application/json","{\"level\":"+String(level,0)+"}");}
+void statusAPI(){
+ String j="{\"level\":"+String(level,0);
+ j+=",\"adc\":"+String(adcValue);
+ j+=",\"status\":"+jsonText(statusText());
+ j+=",\"liquid\":"+jsonText(String(config.liquid));
+ j+=",\"capacityMl\":"+String(config.capacity);
+ j+=",\"warningThreshold\":"+String(config.warning);
+ j+=",\"criticalThreshold\":"+String(config.critical)+"}";
+ server.send(200,"application/json",j);
+}
 
 void configAPI(){
  strncpy(config.liquid,server.arg("liquid").c_str(),31);
+ config.liquid[31]='\0';
  config.capacity=server.arg("capacity").toInt();
  config.warning=server.arg("warning").toFloat();
  config.critical=server.arg("critical").toFloat();
@@ -89,18 +119,63 @@ void simulationCommand(String c){
 
 void setup(){
  Serial.begin(115200);EEPROM.begin(EEPROM_SIZE);loadConfig();
+ Serial.println();Serial.println("LiquidMonitor boot");
+ Serial.println(ESP.getResetReason());
  lcd.begin(16,2);
- WiFi.softAP(ssid,password);
+ WiFi.persistent(false);
+ WiFi.mode(WIFI_AP);
+ WiFi.setSleepMode(WIFI_NONE_SLEEP);
+ IPAddress ip(192,168,4,1);
+ if(!WiFi.softAPConfig(ip,ip,IPAddress(255,255,255,0)) ||
+    !WiFi.softAP(ssid,password)){
+  Serial.println("Failed to start LiquidMonitor Wi-Fi");
+ }
+ Serial.print("ESP address: ");Serial.println(WiFi.softAPIP());
  server.on("/rooms",HTTP_GET,roomsAPI);
  server.on("/status",HTTP_GET,statusAPI);
  server.on("/config",HTTP_POST,configAPI);
  server.begin();
+ lastSensorCycle=millis()-500;
 }
 
 void loop(){
+ // HTTP must be serviced continuously, including while sampling the sensor.
  server.handleClient();
- if(Serial.available())simulationCommand(Serial.readStringUntil('\n'));
- adcValue=readSensor();level=calculateLevel(adcValue);
- lcd.clear();lcd.print(config.liquid);lcd.setCursor(0,1);lcd.print("L:");lcd.print(level,0);lcd.print("% ");lcd.print(statusText());
- delay(500);
+ for(int i=0;i<32 && Serial.available();i++){
+  char c=Serial.read();
+  if(c=='\n'){
+   if(!serialOverflow)simulationCommand(serialCommand);
+   serialCommand="";serialOverflow=false;
+  }else if(c!='\r'){
+   if(serialCommand.length()<32)serialCommand+=c;
+   else serialOverflow=true;
+  }
+ }
+
+ unsigned long now=millis();
+ if(!sampling && now-lastSensorCycle>=500){
+  sampling=true;sampleSum=0;sampleCount=0;
+  lastSensorCycle=now;lastSample=now-2;
+ }
+ if(sampling && now-lastSample>=2){
+  lastSample=now;sampleSum+=analogRead(SENSOR_PIN);sampleCount++;
+  if(sampleCount==20){
+   sampling=false;adcValue=sampleSum/20;level=calculateLevel(adcValue);
+   // Overwrite and pad each row without clearing the LCD on every sample.
+   lcd.setCursor(0,0);
+   String row=String(config.liquid).substring(0,16);
+   while(row.length()<16)row+=' ';
+   lcd.print(row);
+   lcd.setCursor(0,1);
+   row="L:"+String(level,0)+"% "+statusText();
+   while(row.length()<16)row+=' ';
+   lcd.print(row.substring(0,16));
+   int stations=WiFi.softAPgetStationNum();
+   if(stations!=lastStationCount){
+    lastStationCount=stations;
+    Serial.printf("Wi-Fi clients: %d\n",stations);
+   }
+  }
+ }
+ yield();
 }

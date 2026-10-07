@@ -1,16 +1,17 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'esp_http_client.dart';
 
 import '../models/liquid_status.dart';
 import '../models/bottle_config.dart';
 
 class EspService {
   static const String baseUrl = 'http://192.168.4.1';
+  EspService({EspHttpClient? client})
+      : _client = client ?? EspHttpClient.shared;
+  final EspHttpClient _client;
 
   Future<LiquidStatus> getStatus() async {
-    final response = await http
-        .get(Uri.parse('$baseUrl/status'))
-        .timeout(const Duration(seconds: 5));
+    final response = await _client.get(Uri.parse('$baseUrl/status'));
 
     if (response.statusCode != 200) {
       throw Exception('ESP8266 error');
@@ -20,10 +21,10 @@ class EspService {
   }
 
   Future<void> sendBottleConfig(BottleConfig config) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/config'),
       body: config.toRequest(),
-    ).timeout(const Duration(seconds: 8));
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Configuration failed');

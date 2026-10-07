@@ -2,9 +2,9 @@ import 'dart:async';
 import 'rooms_service.dart';
 import 'notification_service.dart';
 
-
 class MonitoringService {
   static Timer? _timer;
+  static bool _checking = false;
   static final Set<int> _notified = {};
   static final RoomsService _roomsService = RoomsService();
 
@@ -15,6 +15,8 @@ class MonitoringService {
   }
 
   static Future<void> _check() async {
+    if (_checking) return;
+    _checking = true;
     try {
       final rooms = await _roomsService.fetchRooms();
       for (final room in rooms) {
@@ -30,6 +32,10 @@ class MonitoringService {
           _notified.remove(room.id);
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      // Retry on the next monitoring interval.
+    } finally {
+      _checking = false;
+    }
   }
 }

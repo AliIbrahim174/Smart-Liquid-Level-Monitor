@@ -6,17 +6,33 @@ import '../services/esp_service.dart';
 import 'qr_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.service});
+  final EspService? service;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final EspService service = EspService();
+  late final EspService service = widget.service ?? EspService();
   LiquidStatus? data;
   Timer? timer;
-  bool connected = false;
+  bool updating = false;
+  int failedRequests = 0;
+  DateTime? lastUpdated;
+
+  String get connectionText {
+    if (failedRequests >= 3) return 'ESP8266: Offline - retrying';
+    if (failedRequests > 0) return 'ESP8266: Reading delayed - retrying';
+    if (lastUpdated == null) return 'ESP8266: Connecting';
+    return 'ESP8266: Online';
+  }
+
+  Color get connectionColor {
+    if (failedRequests >= 3) return Colors.red;
+    if (failedRequests > 0) return Colors.orange;
+    return lastUpdated == null ? Colors.grey : Colors.green;
+  }
 
   @override
   void initState() {
@@ -26,16 +42,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> update() async {
+    if (updating || !mounted) return;
+    updating = true;
     try {
       final result = await service.getStatus();
       if (!mounted) return;
       setState(() {
         data = result;
-        connected = true;
+        failedRequests = 0;
+        lastUpdated = DateTime.now();
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => connected = false);
+      setState(() => failedRequests++);
+    } finally {
+      updating = false;
     }
   }
 
@@ -62,16 +83,42 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Smart Liquid Monitor'),
         centerTitle: true,
         actions: [
-          Icon(connected ? Icons.wifi : Icons.wifi_off,
-              color: connected ? Colors.green : Colors.red),
+          Icon(failedRequests >= 3 ? Icons.wifi_off : Icons.wifi,
+              color: connectionColor),
           const SizedBox(width: 15),
         ],
       ),
       body: data == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(connectionText),
+                  if (failedRequests > 0) ...[
+                    const Text(
+                        'Connect to LiquidMonitor Wi-Fi to receive data.'),
+                    TextButton(
+                        onPressed: update, child: const Text('Retry now')),
+                  ],
+                ],
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.wifi, color: connectionColor),
+                  title: Text(connectionText),
+                  subtitle: Text([
+                    if (lastUpdated != null)
+                      'Last received: ${TimeOfDay.fromDateTime(lastUpdated!).format(context)}',
+                    if (failedRequests > 0)
+                      'Showing the last received reading; it is not live.',
+                  ].join('\n')),
+                ),
                 Card(
                   elevation: 4,
                   child: Padding(
@@ -82,8 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: 70, color: Colors.blue),
                         Text('${data!.level.toStringAsFixed(0)}%',
                             style: const TextStyle(
-                                fontSize: 55,
-                                fontWeight: FontWeight.bold)),
+                                fontSize: 55, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 15),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(20),
@@ -96,8 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Chip(
                           label: Text(data!.status,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18)),
+                                  fontWeight: FontWeight.bold, fontSize: 18)),
                           backgroundColor:
                               statusColor(data!.status).withValues(alpha: .2),
                         )
@@ -116,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 _infoCard('Sensor Information', [
                   'Sensor: C43 Level Sensor',
                   'ADC Reading: ${data!.adc}',
-                  connected ? 'ESP8266: Online' : 'ESP8266: Offline',
                 ]),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.qr_code_scanner),

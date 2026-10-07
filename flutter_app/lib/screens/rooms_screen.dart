@@ -19,14 +19,19 @@ class _RoomsScreenState extends State<RoomsScreen> {
   bool loading = true;
   String error = '';
   Timer? refreshTimer;
+  bool fetching = false;
   final Set<int> notifiedRooms = {};
 
   Color statusColor(String status) {
     switch (status) {
-      case 'NORMAL': return Colors.green;
-      case 'LOW': return Colors.orange;
-      case 'CRITICAL': return Colors.red;
-      default: return Colors.grey;
+      case 'NORMAL':
+        return Colors.green;
+      case 'LOW':
+        return Colors.orange;
+      case 'CRITICAL':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -47,6 +52,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
   }
 
   Future<void> loadRooms() async {
+    if (fetching || !mounted) return;
+    fetching = true;
     try {
       final result = await service.fetchRooms();
       await checkAlerts(result);
@@ -62,6 +69,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
         loading = false;
         error = e.toString();
       });
+    } finally {
+      fetching = false;
     }
   }
 
@@ -69,7 +78,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
   void initState() {
     super.initState();
     loadRooms();
-    refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) => loadRooms());
+    refreshTimer =
+        Timer.periodic(const Duration(seconds: 3), (_) => loadRooms());
   }
 
   @override
@@ -85,7 +95,9 @@ class _RoomsScreenState extends State<RoomsScreen> {
         color: statusColor(status).withValues(alpha: .15),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(status, style: TextStyle(color: statusColor(status), fontWeight: FontWeight.bold)),
+      child: Text(status,
+          style: TextStyle(
+              color: statusColor(status), fontWeight: FontWeight.bold)),
     );
   }
 
@@ -95,52 +107,73 @@ class _RoomsScreenState extends State<RoomsScreen> {
       appBar: AppBar(title: const Text('Liquid Monitoring Rooms')),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : error.isNotEmpty
+          : error.isNotEmpty && devices.isEmpty
               ? Center(child: Text(error))
               : RefreshIndicator(
                   onRefresh: loadRooms,
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      ...devices.map((device) => Card(
-                        elevation: 3,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => RoomDetailsScreen(device: device)),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(device.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                                    statusBadge(device.status),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Icon(device.mode == DeviceMode.real ? Icons.sensors : Icons.developer_mode),
-                                    const SizedBox(width: 8),
-                                    Text(device.mode == DeviceMode.real ? 'REAL DEVICE' : 'SIMULATION'),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text('${device.liquid}  •  ${device.remainingMl} mL remaining'),
-                                const SizedBox(height: 10),
-                                LinearProgressIndicator(value: (device.level / 100).clamp(0, 1)),
-                                const SizedBox(height: 8),
-                                Text('Level: ${device.level.toStringAsFixed(0)}%'),
-                              ],
-                            ),
-                          ),
+                      if (error.isNotEmpty)
+                        const ListTile(
+                          leading: Icon(Icons.wifi_off, color: Colors.orange),
+                          title: Text('Reading delayed - retrying'),
+                          subtitle: Text(
+                              'Showing the last received readings; they are not live.'),
                         ),
-                      )),
+                      ...devices.map((device) => Card(
+                            elevation: 3,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        RoomDetailsScreen(device: device)),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(device.name,
+                                            style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold)),
+                                        statusBadge(device.status),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Icon(device.mode == DeviceMode.real
+                                            ? Icons.sensors
+                                            : Icons.developer_mode),
+                                        const SizedBox(width: 8),
+                                        Text(device.mode == DeviceMode.real
+                                            ? 'REAL DEVICE'
+                                            : 'SIMULATION'),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                        '${device.liquid}  •  ${device.remainingMl} mL remaining'),
+                                    const SizedBox(height: 10),
+                                    LinearProgressIndicator(
+                                        value:
+                                            (device.level / 100).clamp(0, 1)),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                        'Level: ${device.level.toStringAsFixed(0)}%'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )),
                     ],
                   ),
                 ),

@@ -15,13 +15,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final RoomsService service = RoomsService();
   List<MonitorDevice> devices = [];
   Timer? timer;
+  bool loading = false;
+  bool readingDelayed = false;
 
   Future<void> loadData() async {
+    if (loading || !mounted) return;
+    loading = true;
     try {
       final result = await service.fetchRooms();
       if (!mounted) return;
-      setState(() => devices = result);
-    } catch (_) {}
+      setState(() {
+        devices = result;
+        readingDelayed = false;
+      });
+    } catch (_) {
+      // Keep the last received readings while the next poll retries.
+      if (mounted) setState(() => readingDelayed = true);
+    } finally {
+      loading = false;
+    }
   }
 
   @override
@@ -46,7 +58,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Icon(icon, color: color),
               const SizedBox(height: 8),
-              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.bold)),
               Text(title),
             ],
           ),
@@ -65,14 +79,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Smart Liquid Monitor'),
         actions: [
-          Icon(Icons.circle, color: devices.isNotEmpty ? Colors.green : Colors.grey),
+          Icon(Icons.circle,
+              color: readingDelayed
+                  ? Colors.orange
+                  : devices.isNotEmpty
+                      ? Colors.green
+                      : Colors.grey),
           const SizedBox(width: 16),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('System Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text('System Overview',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Row(children: [
             statCard('Normal', '$normal', Icons.check_circle, Colors.green),
@@ -86,11 +106,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: ListTile(
               leading: const Icon(Icons.wifi),
               title: const Text('ESP8266 Network'),
-              subtitle: Text('${devices.length} monitoring nodes connected'),
+              subtitle: Text(readingDelayed
+                  ? 'Readings unavailable - retrying. Displayed data is not live.'
+                  : devices.isEmpty
+                      ? 'Connecting to LiquidMonitor Wi-Fi...'
+                      : '${devices.length} monitoring nodes connected'),
             ),
           ),
           const SizedBox(height: 12),
-          const Text('Live Bottles', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text('Live Bottles',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ...devices.map((d) => Card(
                 child: ListTile(
                   leading: Icon(
@@ -98,7 +123,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: d.status == 'NORMAL' ? Colors.green : Colors.red,
                   ),
                   title: Text(d.name),
-                  subtitle: Text('${d.liquid}\nLevel: ${d.level.toStringAsFixed(0)}% | ${d.status}'),
+                  subtitle: Text(
+                      '${d.liquid}\nLevel: ${d.level.toStringAsFixed(0)}% | ${d.status}'),
                   isThreeLine: true,
                 ),
               )),

@@ -7,6 +7,7 @@ final Set<int> _notified = {};
 
 const String liquidMonitorTask = 'liquidMonitorBackgroundTask';
 
+@pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     if (task == liquidMonitorTask) {
